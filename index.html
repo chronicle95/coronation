@@ -1,0 +1,288 @@
+<!-- Coronation = coronavirus + simulation -->
+
+<!doctype html>
+<html>
+<head>
+<title>Coronation</title>
+<style>
+input[type=text] {
+	font-family: monospace;
+}
+h4 {
+	margin-top: 0;
+	margin-bottom: 5px;
+	text-align: right;
+	border-bottom: 1px solid silver;
+}
+.content-block {
+	border: 1px solid silver;
+    border-radius: 7px;
+	padding: 5px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 10px;
+	width: 800px;
+}
+</style>
+</head>
+<body>
+<div class="content-block">
+	<h4>simulatioN</h4>
+	<canvas id="world"
+		width="1000"
+		height="500"
+		style="width: 100%;"/>
+</div>
+<div class="content-block">
+	<h4>initial setuP</h4>
+	Population:
+	<input type="text"
+		id="initial_population"
+		value="100"
+		maxlength="4" size="4"/>
+	Max speed:
+	<input type="text"
+		id="max_speed"
+		value="0.1"
+		maxlength="4" size="4"/>(u/s)
+	Recover time:
+	<input type="text"
+		id="recover_time"
+		value="5"
+		maxlength="2"
+		size="2"/>(s)
+	Death prob.:
+	<input type="text"
+		id="death_probability"
+		value="0.05"
+		maxlength="4"
+		size="4"/>
+</div>
+<div class="content-block">
+	<h4>controlS</h4>
+	<button onclick="populate()">Reset</button>
+	<button id="sbtn" onclick="start()">Start</button>
+	<button id="pbtn" onclick="pause()" disabled>Pause</button>
+</div>
+<div class="content-block">
+	<h4>statisticS</h4>
+	<div id="info" style="margin-top: 10px;"></div>
+</div>
+
+<script>
+
+const CYCLE_PERIOD		= 20;
+const HUMAN_COLOR		= ["#aaa", "#f00", "#0a0"];
+const HEALTHY			= 0;
+const SICK			= 1;
+const RECOVERED			= 2;
+const DEAD			= 3;
+const HUMAN_RADIUS		= 0.01;
+
+var HUMAN_POPULATION		= 100;
+var HUMAN_MAX_SPEED		= 0.1;
+var HUMAN_RECOVER_TIME		= 5;
+var DEATH_PROBABILITY		= 0.05;
+
+
+var info = document.getElementById("info");
+var canv = document.getElementById("world");
+var ctx = canv.getContext("2d");
+
+var people = [];
+var people_stats = [0, 0, 0, 0];
+var running = false;
+
+function scale(x)
+{
+	return (canv.width + canv.height) / 2 * x;
+}
+
+function Human(is_sick)
+{
+	this.x = Math.random();
+	this.y = Math.random();
+	this.vx = 2 * (Math.random() - 0.5) * HUMAN_MAX_SPEED;
+	this.vy = 2 * (Math.random() - 0.5) * HUMAN_MAX_SPEED;
+	this.state = is_sick ? SICK : HEALTHY;
+	this.recovery_timer = HUMAN_RECOVER_TIME;
+
+	people_stats[this.state]++;
+
+	this.infected = function()
+	{
+		if (this.state == HEALTHY)
+		{
+			people_stats[this.state]--;
+			this.state = SICK;
+			people_stats[this.state]++;
+		}
+	}
+
+	this.recovered = function()
+	{
+		if (this.state == SICK)
+		{
+			people_stats[this.state]--;
+			this.state = RECOVERED;
+			people_stats[this.state]++;
+		}
+	}
+
+	this.dead = function()
+	{
+		if (this.state == SICK)
+		{
+			people_stats[this.state]--;
+			this.state = DEAD;
+			people_stats[this.state]++;
+		}
+	}
+
+	this.can_infect = function(other)
+	{
+		if (other.state != HEALTHY || this.state != SICK)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	this.contact = function(other)
+	{
+		// infection
+		if (this.can_infect(other))
+		{
+			other.infected();
+		}
+		if (other.can_infect(this))
+		{
+			this.infected();
+		}
+		// bump
+		var tx = this.vx;
+		var ty = this.vy;
+		this.vx = other.vx;
+		this.vy = other.vy;
+		other.vx = tx;
+		other.vy = ty;
+	}
+
+	this.is_nearby = function(other)
+	{
+		var dist = Math.sqrt(Math.pow(this.x - other.x, 2) + Math.pow(this.y - other.y, 2));
+		return dist < 2*HUMAN_RADIUS;
+	}
+
+	this.heal = function()
+	{
+		this.recovery_timer -= CYCLE_PERIOD / 1000;
+		if (this.recovery_timer < 0)
+		{
+			if (Math.random() > DEATH_PROBABILITY)
+			{
+				this.recovered();
+			}
+			else
+			{
+				this.dead();
+			}
+		}
+	}
+
+	this.move = function()
+	{
+		this.x += this.vx * CYCLE_PERIOD / 1000;
+		this.y += this.vy * CYCLE_PERIOD / 1000;
+		if (this.x < 0 || this.x > 1) this.vx = -this.vx;
+		if (this.y < 0 || this.y > 1) this.vy = -this.vy;
+
+		if (this.state == SICK)
+		{
+			this.heal();
+		}
+	}
+
+	this.draw = function()
+	{
+		ctx.beginPath();
+		ctx.fillStyle = HUMAN_COLOR[this.state];
+		ctx.strokeStyle = HUMAN_COLOR[this.state];
+		ctx.arc(canv.width*this.x, canv.height*this.y, scale(HUMAN_RADIUS), 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.stroke();
+	}
+}
+
+function start()
+{
+	running = true;
+	document.getElementById("pbtn").disabled = false;
+	document.getElementById("sbtn").disabled = true;
+}
+
+function pause()
+{
+	running = false;
+	document.getElementById("pbtn").disabled = true;
+	document.getElementById("sbtn").disabled = false;
+}
+
+function populate()
+{
+	HUMAN_POPULATION = Number.parseInt(document.getElementById("initial_population").value);
+	HUMAN_MAX_SPEED = Number.parseFloat(document.getElementById("max_speed").value);
+	HUMAN_RECOVER_TIME = Number.parseInt(document.getElementById("recover_time").value);
+	DEATH_PROBABILITY = Number.parseFloat(document.getElementById("death_probability").value);
+	pause();
+	people = [];
+	people_stats = [0, 0, 0, 0];
+	for (var i = 0; i < (HUMAN_POPULATION - 1); i++)
+	{
+		people.push(new Human(false));
+	}
+	people.push(new Human(true));
+}
+
+populate();
+window.setInterval(function() {
+	ctx.fillStyle = "#fff";
+	ctx.fillRect(0, 0, canv.width, canv.height);
+
+	// animate humanity
+	for (var i = 0; i < people.length; i++)
+	{
+		if (people[i].state == DEAD)
+		{
+			continue;
+		}
+		if (running)
+		{
+			people[i].move();
+			for (var j = i + 1; j < people.length; j++)
+				if (people[j].state != DEAD
+				&& people[i].is_nearby(people[j]))
+					people[i].contact(people[j]);
+		}
+		people[i].draw();
+	}
+
+	// show statistics
+	stats  = "Population: " + (people.length - people_stats[DEAD]) + "<br/>";
+	stats += "Healthy people: " + people_stats[HEALTHY] + "<br/>";
+	stats += "Sick people: " + people_stats[SICK] + "<br/>";
+	stats += "Recovered people: " + people_stats[RECOVERED] + "<br/>";
+	stats += "People died: " + people_stats[DEAD] + "<br/>";
+	info.innerHTML = stats;
+
+	// stop simulation as soon as there are no more infected people
+	if (people_stats[SICK] == 0)
+	{
+		pause();
+	}
+}, CYCLE_PERIOD);
+
+</script>
+</body>
+</html>
+
