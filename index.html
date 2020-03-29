@@ -4,7 +4,12 @@
 <html>
 <head>
 <title>Coronation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <style>
+body {
+	padding: 0px;
+	margin: 0px;
+}
 input[type=text] {
 	font-family: monospace;
 }
@@ -13,22 +18,38 @@ h4 {
 	margin-bottom: 5px;
 	text-align: right;
 	border-bottom: 1px solid silver;
+	letter-spacing: 3px;
 }
 .content-block {
-	background-color: #ffe;
-	border: 1px solid silver;
-	border-radius: 7px;
-	box-shadow: 1px 1px 3px #aaa;
+	box-shadow: 1px 1px 4px #bbb;
 	padding: 5px;
 	margin-left: auto;
 	margin-right: auto;
-	margin-top: 10px;
+	margin-top: 15px;
 	width: 800px;
 }
 canvas {
 	width: 100%;
 	border: 1px dotted silver;
-	border-radius: 7px;
+}
+@media screen and (max-width:800px)
+{
+	.content-block {
+		margin-left: 0px;
+		margin-right: 0px;
+		box-shadow: 0px 1px 4px #bbb;
+		width: 100%;
+		padding-left: 0px;
+		padding-right: 0px;
+	}
+	button {
+		width: 20%;
+		height: 32px;
+	}
+	canvas {
+		border-left: 0px;
+		border-right: 0px;
+	}
 }
 </style>
 </head>
@@ -45,28 +66,28 @@ canvas {
 </div>
 <div class="content-block">
 	<h4>initial setuP</h4>
-	Population:
+	<div style="display:inline-block">Population:
 	<input type="text"
 		id="initial_population"
 		value="100"
-		maxlength="4" size="4"/>
-	Max speed:
+		maxlength="4" size="4"/></div>
+	<div style="display:inline-block">Max. speed:
 	<input type="text"
 		id="max_speed"
 		value="0.1"
-		maxlength="4" size="4"/>(u/s)
-	Recover time:
+		maxlength="4" size="4"/>(u/s)</div>
+	<div style="display:inline-block">Recovery time:
 	<input type="text"
 		id="recover_time"
 		value="5"
 		maxlength="2"
-		size="2"/>(s)
-	Death prob.:
+		size="2"/>(s)</div>
+	<div style="display:inline-block">Mortality rate:
 	<input type="text"
-		id="death_probability"
+		id="MORTALITY_RATE"
 		value="0.05"
 		maxlength="4"
-		size="4"/>
+		size="4"/></div>
 </div>
 <div class="content-block">
 	<h4>controlS</h4>
@@ -91,7 +112,7 @@ const HUMAN_RADIUS		= 0.01;
 var HUMAN_POPULATION		= undefined;
 var HUMAN_MAX_SPEED		= undefined;
 var HUMAN_RECOVER_TIME		= undefined;
-var DEATH_PROBABILITY		= undefined;
+var MORTALITY_RATE		= undefined;
 
 var info = document.getElementById("info");
 var canv = document.getElementById("world");
@@ -180,7 +201,7 @@ function Human(is_sick)
 		this.recovery_timer -= CYCLE_PERIOD / 1000;
 		if (this.recovery_timer < 0)
 		{
-			if (Math.random() > DEATH_PROBABILITY)
+			if (Math.random() > MORTALITY_RATE)
 			{
 				this.recovered();
 			}
@@ -283,7 +304,7 @@ function copy_inputs()
 	HUMAN_POPULATION = Number.parseInt(document.getElementById("initial_population").value);
 	HUMAN_MAX_SPEED = Number.parseFloat(document.getElementById("max_speed").value);
 	HUMAN_RECOVER_TIME = Number.parseInt(document.getElementById("recover_time").value);
-	DEATH_PROBABILITY = Number.parseFloat(document.getElementById("death_probability").value);
+	MORTALITY_RATE = Number.parseFloat(document.getElementById("MORTALITY_RATE").value);
 }
 
 function generate_unique(arr, is_sick, attempt_limit)
