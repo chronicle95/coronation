@@ -107,7 +107,7 @@ const HEALTHY			= 0;
 const SICK			= 1;
 const RECOVERED			= 2;
 const DEAD			= 3;
-const HUMAN_RADIUS		= 0.01;
+const HUMAN_RADIUS		= 0.02;
 
 var HUMAN_POPULATION		= undefined;
 var HUMAN_MAX_SPEED		= undefined;
@@ -118,13 +118,16 @@ var info = document.getElementById("info");
 var canv = document.getElementById("world");
 var ctx = canv.getContext("2d");
 
+var units_width = canv.width / canv.height;
+//var units_height = 1;            assume height is 1
+
 var people = [];
 var people_stats = [0, 0, 0, 0];
 var interval = -1;
 
 function Human(is_sick)
 {
-	this.x = Math.random() * (1 - 2*HUMAN_RADIUS) + HUMAN_RADIUS;
+	this.x = Math.random() * (units_width - 2*HUMAN_RADIUS) + HUMAN_RADIUS;
 	this.y = Math.random() * (1 - 2*HUMAN_RADIUS) + HUMAN_RADIUS;
 	this.vx = 2 * (Math.random() - 0.5) * HUMAN_MAX_SPEED;
 	this.vy = 2 * (Math.random() - 0.5) * HUMAN_MAX_SPEED;
@@ -218,7 +221,7 @@ function Human(is_sick)
 
 		this.x += this.vx * CYCLE_PERIOD / 1000;
 		this.y += this.vy * CYCLE_PERIOD / 1000;
-		if (this.x < HUMAN_RADIUS || this.x > (1 - HUMAN_RADIUS)) this.vx = -this.vx;
+		if (this.x < HUMAN_RADIUS || this.x > (units_width - HUMAN_RADIUS)) this.vx = -this.vx;
 		if (this.y < HUMAN_RADIUS || this.y > (1 - HUMAN_RADIUS)) this.vy = -this.vy;
 
 		if (this.state == SICK)
@@ -234,9 +237,7 @@ function Human(is_sick)
 		ctx.beginPath();
 		ctx.fillStyle = HUMAN_COLOR[this.state];
 		ctx.strokeStyle = HUMAN_COLOR[this.state];
-		ctx.ellipse(canv.width*this.x, canv.height*this.y,
-				canv.width*HUMAN_RADIUS, canv.height*HUMAN_RADIUS,
-				0, 0, 2*Math.PI);
+		ctx.arc(canv.width*this.x/units_width, canv.height*this.y, canv.height*HUMAN_RADIUS, 0, 2*Math.PI);
 		ctx.fill();
 		ctx.stroke();
 	}
